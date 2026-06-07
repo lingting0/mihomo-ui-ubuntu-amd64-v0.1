@@ -1,11 +1,15 @@
 # 敏感文件
 sub_url.txt
+config.yaml
 config.yaml.bak*
 
 # mihomo 运行时
 cache.db
 geoip.metadb
 *.log
+
+# 备份
+dashboard.yacd.bak/
 
 # 系统文件
 CLAUDE.md

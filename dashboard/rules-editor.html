@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>规则管理 - mihomo</title>
+<style>
+  :root {
+    --bg: #1a1a2e;
+    --card: #16213e;
+    --text: #e0e0e0;
+    --green: #4caf84;
+    --red: #e0556a;
+    --yellow: #d4a843;
+    --blue: #5b9bd5;
+    --border: #2a2a4a;
+    --muted: #888;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 24px;
+  }
+  .container { max-width: 960px; margin: 0 auto; }
+  h1 { font-size: 1.5rem; margin-bottom: 24px; display: flex; align-items: center; gap: 10px; }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 16px;
+  }
+  .card h2 {
+    font-size: 0.95rem; margin-bottom: 16px;
+    color: #aaa; text-transform: uppercase; letter-spacing: 0.5px;
+  }
+  input, select {
+    padding: 10px 14px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-size: 0.9rem;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  input:focus, select:focus { border-color: var(--blue); }
+  select option { background: var(--card); color: var(--text); }
+  button {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+  button:hover { opacity: 0.85; transform: translateY(-1px); }
+  button:active { transform: translateY(0); }
+  button:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+  .btn-primary { background: var(--blue); color: #fff; }
+  .btn-success { background: var(--green); color: #fff; }
+  .btn-danger { background: var(--red); color: #fff; }
+  .btn-sm { padding: 4px 10px; font-size: 0.78rem; }
+  .add-form {
+    display: grid;
+    grid-template-columns: 1fr 2fr 1.5fr auto;
+    gap: 8px;
+    align-items: end;
+  }
+  @media (max-width: 700px) {
+    .add-form { grid-template-columns: 1fr 1fr; }
+  }
+  .rule-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+  }
+  .rule-table th {
+    text-align: left;
+    padding: 10px 12px;
+    border-bottom: 2px solid var(--border);
+    color: var(--muted);
+    font-weight: 600;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+  }
+  .rule-table td {
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: middle;
+  }
+  .rule-table tr:hover td { background: rgba(255,255,255,0.03); }
+  .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 600;
+  }
+  .badge-DIRECT { background: #f5bc41; color: #1a1a2e; }
+  .badge-REJECT { background: #cb3166; color: #fff; }
+  .badge-proxy { background: #59caf9; color: #1a1a2e; }
+  .payload { font-family: monospace; font-size: 0.82rem; word-break: break-all; }
+  .toast {
+    position: fixed; bottom: 24px; right: 24px;
+    padding: 12px 20px; border-radius: 8px; font-size: 0.9rem;
+    animation: slideIn 0.3s ease; z-index: 1000;
+  }
+  .toast-success { background: var(--green); color: #fff; }
+  .toast-error { background: var(--red); color: #fff; }
+  @keyframes slideIn {
+    from { transform: translateY(20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+  .back-link {
+    display: inline-block; margin-bottom: 20px;
+    color: var(--blue); text-decoration: none; font-size: 0.9rem;
+  }
+  .back-link:hover { text-decoration: underline; }
+  .spinner {
+    display: inline-block; width: 14px; height: 14px;
+    border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff;
+    border-radius: 50%; animation: spin 0.8s linear infinite;
+    vertical-align: middle; margin-right: 6px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .counter { color: var(--muted); font-size: 0.85rem; }
+  .empty { text-align: center; padding: 40px; color: var(--muted); }
+  .confirm-overlay {
+    position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.6);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 999;
+  }
+  .confirm-box {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    max-width: 400px;
+    text-align: center;
+  }
+  .confirm-box p { margin-bottom: 16px; }
+  .confirm-box button { margin: 0 6px; }
+</style>
+</head>
+<body>
+<div class="container">
+  <a href="./" class="back-link">← 返回面板</a>
+  <h1>📋 规则管理 <span class="counter" id="ruleCount"></span></h1>
+
+  <!-- 添加规则 -->
+  <div class="card">
+    <h2>➕ 新增规则</h2>
+    <div class="add-form">
+      <select id="ruleType">
+        <option value="DOMAIN">DOMAIN</option>
+        <option value="DOMAIN-SUFFIX">DOMAIN-SUFFIX</option>
+        <option value="DOMAIN-KEYWORD">DOMAIN-KEYWORD</option>
+        <option value="IP-CIDR">IP-CIDR</option>
+        <option value="IP-CIDR6">IP-CIDR6</option>
+        <option value="GEOIP">GEOIP</option>
+        <option value="MATCH" selected>MATCH</option>
+      </select>
+      <input type="text" id="rulePayload" placeholder="匹配内容 (如: example.com)" />
+      <input type="text" id="ruleProxy" placeholder="目标策略 (如: DIRECT, 一元机场)" />
+      <button class="btn-success" id="addBtn" onclick="addRule()">添加规则</button>
+    </div>
+    <div style="margin-top:10px;font-size:0.78rem;color:var(--muted);">
+      格式说明：<code>DOMAIN-SUFFIX,google.com,代理组名</code> 或 <code>MATCH,代理组名</code>（MATCH 不需要 payload）
+    </div>
+  </div>
+
+  <!-- 规则列表 -->
+  <div class="card">
+    <h2>📜 当前规则</h2>
+    <div style="max-height:60vh;overflow-y:auto;">
+      <table class="rule-table">
+        <thead>
+          <tr><th style="width:50px">#</th><th>类型</th><th>匹配内容</th><th>策略</th><th style="width:60px"></th></tr>
+        </thead>
+        <tbody id="ruleBody">
+          <tr><td colspan="5" class="empty">加载中...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div id="confirmBox"></div>
+
+<script>
+const API = window.location.protocol + '//' + window.location.hostname + ':9091';
+
+async function api(path, opts = {}) {
+  const r = await fetch(API + path, {
+    headers: { 'Content-Type': 'application/json' },
+    ...opts
+  });
+  return r.json();
+}
+
+function parseRule(raw) {
+  const parts = raw.split(',');
+  return {
+    type: parts[0] || '',
+    payload: parts[1] || '',
+    proxy: parts[2] || '',
+    extra: parts.slice(3).join(',') || ''
+  };
+}
+
+function badgeClass(proxy) {
+  if (!proxy) return 'badge-proxy';
+  const p = proxy.trim();
+  if (p === 'DIRECT') return 'badge-DIRECT';
+  if (p === 'REJECT') return 'badge-REJECT';
+  return 'badge-proxy';
+}
+
+async function loadRules() {
+  try {
+    const data = await api('/api/rules');
+    const rules = data.rules || [];
+    document.getElementById('ruleCount').textContent = `(${data.total} 条规则)`;
+    const tbody = document.getElementById('ruleBody');
+
+    if (rules.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="5" class="empty">暂无规则</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = rules.map(r => {
+      const rule = parseRule(r.raw);
+      return `<tr>
+        <td>${r.index}</td>
+        <td><span style="color:var(--blue);font-size:0.8rem;font-weight:600">${escHtml(rule.type)}</span></td>
+        <td><span class="payload">${escHtml(rule.payload || '-')}</span></td>
+        <td><span class="badge ${badgeClass(rule.proxy)}">${escHtml(rule.proxy || '-')}</span></td>
+        <td><button class="btn-danger btn-sm" onclick="confirmDelete(${r.index}, '${escHtml(rule.payload || rule.type)}')" title="删除此规则">✕</button></td>
+      </tr>`;
+    }).join('');
+
+  } catch (e) {
+    document.getElementById('ruleBody').innerHTML =
+      '<tr><td colspan="5" class="empty">⚠️ 无法连接 API 服务 (端口 9091)</td></tr>';
+  }
+}
+
+async function addRule() {
+  const type = document.getElementById('ruleType').value;
+  let payload = document.getElementById('rulePayload').value.trim();
+  const proxy = document.getElementById('ruleProxy').value.trim();
+  const btn = document.getElementById('addBtn');
+
+  if (!proxy) { toast('请输入目标策略 (如 DIRECT, 代理组名)', 'error'); return; }
+  if (type === 'MATCH' && !payload) payload = '';
+
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>';
+
+  try {
+    const data = await api('/api/rules', {
+      method: 'POST',
+      body: JSON.stringify({ type, payload, proxy })
+    });
+    toast(data.message, data.success ? 'success' : 'error');
+    if (data.success) {
+      document.getElementById('rulePayload').value = '';
+      document.getElementById('ruleProxy').value = '';
+      await loadRules();
+    }
+  } catch (e) {
+    toast('请求失败: ' + e.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '添加规则';
+  }
+}
+
+async function deleteRule(index) {
+  try {
+    const data = await api('/api/rules/' + index, { method: 'DELETE' });
+    toast(data.message, data.success ? 'success' : 'error');
+    if (data.success) await loadRules();
+  } catch (e) {
+    toast('请求失败: ' + e.message, 'error');
+  }
+}
+
+function confirmDelete(index, label) {
+  const box = document.getElementById('confirmBox');
+  box.innerHTML = `<div class="confirm-overlay" onclick="if(event.target===this)closeConfirm()">
+    <div class="confirm-box">
+      <p>确定要删除规则 <b>#${index}</b> 吗？</p>
+      <p style="font-family:monospace;font-size:0.85rem;color:var(--muted);word-break:break-all">${escHtml(label)}</p>
+      <button class="btn-danger" id="confirmDelBtn">确认删除</button>
+      <button onclick="closeConfirm()">取消</button>
+    </div>
+  </div>`;
+  document.getElementById('confirmDelBtn').onclick = () => {
+    closeConfirm();
+    deleteRule(index);
+  };
+}
+
+function closeConfirm() {
+  document.getElementById('confirmBox').innerHTML = '';
+}
+
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function toast(msg, type) {
+  const t = document.createElement('div');
+  t.className = 'toast toast-' + type;
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 3000);
+}
+
+loadRules();
+</script>
+</body>
+</html>

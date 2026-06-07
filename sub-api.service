@@ -1,0 +1,16 @@
+[Unit]
+Description=mihomo Subscription Management API
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 /etc/mihomo/sub-api.py 9091 0.0.0.0
+WorkingDirectory=/etc/mihomo
+Restart=on-failure
+RestartSec=5s
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

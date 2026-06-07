@@ -1,27 +1,408 @@
-<!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="shortcut icon" href="yacd.ico" />
-    <link rel="icon" type="image/png" sizes="64x64" href="yacd-64.png" />
-    <link rel="icon" type="image/png" sizes="128x128" href="yacd-128.png" />
-    <link rel="apple-touch-icon-precomposed" href="apple-touch-icon-precomposed.png" />
-    <meta name="apple-mobile-web-app-title" content="yacd">
-    <meta name="theme-color" content="#eeeeee" media="(prefers-color-scheme: light)" />
-    <meta name="theme-color" content="#202020" media="(prefers-color-scheme: dark)" />
-    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="application-name" content="yacd" />
-    <meta name="description" content="Yet Another Clash Dashboard" />
-    <title>yacd</title>
-    <script type="module" crossorigin src="./assets/index-8cf47a1c.js"></script>
-    <link rel="stylesheet" href="./assets/index-d5e38ae4.css">
-  </head>
-  <body>
-    <div id="app"></div>
-    <script>
-      document.getElementById('app').setAttribute('data-base-url', window.location.origin);
-    </script>
-    
-  </body>
-</html>
+<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"><script type="importmap">{"imports":{"#entry":"./_nuxt/Bmqvg1eR.js"}}</script><title>MetaCubeXD</title><script src="config.js" onerror="window.__METACUBEXD_CONFIG__={defaultBackendURL:''}"></script><script>window.__METACUBEXD_CONFIG__ = window.__METACUBEXD_CONFIG__ || { defaultBackendURL: '' }</script><link rel="stylesheet" href="./_nuxt/entry.B_k74qUh.css" crossorigin><link rel="modulepreload" as="script" crossorigin href="./_nuxt/Bmqvg1eR.js"><link rel="modulepreload" as="script" crossorigin href="./_nuxt/CaGtQlYh.js"><link rel="modulepreload" as="script" crossorigin href="./_nuxt/QTnfLwEv.js"><script type="module" src="./_nuxt/Bmqvg1eR.js" crossorigin></script><meta name="theme-color" content="#000000"><link rel="icon" type="image/svg+xml" href="favicon.svg"><link rel="apple-touch-icon" href="pwa-192x192.png"><link rel="manifest" href="manifest.webmanifest"><script id="unhead:payload" type="application/json">{"title":"MetaCubeXD"}</script></head><body><div id="__nuxt"></div><div id="teleports"></div><script>window.__NUXT__={};window.__NUXT__.config={public:{appVersion:"1.251.3",mockMode:false,defaultBackendURL:"",i18n:{baseUrl:"",defaultLocale:"en",rootRedirect:"",redirectStatusCode:302,skipSettingLocaleOnNavigate:false,locales:[{code:"en",name:"English",language:""},{code:"zh",name:"简体中文",language:""},{code:"ru",name:"Русский",language:""}],detectBrowserLanguage:{alwaysRedirect:false,cookieCrossOrigin:false,cookieDomain:"",cookieKey:"metacubexd_lang",cookieSecure:false,fallbackLocale:"en",redirectOn:"root",useCookie:true},experimental:{localeDetector:"",typedPages:true,typedOptionsAndMessages:false,alternateLinkCanonicalQueries:true,devCache:false,cacheLifetime:"",stripMessagesPayload:false,preload:false,strictSeo:false,nitroContextDetection:true,httpCacheDuration:10,compactRoutes:false,prerenderMessages:false},domainLocales:{en:{domain:""},zh:{domain:""},ru:{domain:""}}}},app:{baseURL:"./",buildId:"cdc84ee9-d7c0-44a7-96d3-b0595bcf2138",buildAssetsDir:"/_nuxt/",cdnURL:""}}</script><script type="application/json" data-nuxt-data="nuxt-app" data-ssr="false" id="__NUXT_DATA__">[{"prerenderedAt":1,"serverRendered":2},1780682638350,false]</script>
+<script>
+// ============================================================
+// mihomo 功能注入：侧边栏订阅(内嵌) + 规则页增删改
+// 参考源码: Sidebar.vue, pages/rules.vue, layouts/default.vue
+// ============================================================
+(function() {
+  'use strict';
+  var API = window.location.protocol + '//' + window.location.hostname + ':9091';
+  var sidebarReady = false, sidebarAttempts = 0, addRuleInjected = false;
+
+  // ====== 侧边栏 "订阅" 链接 (匹配 nav-link 精确结构) ======
+  function injectSidebar() {
+    if (sidebarReady) return true;
+    sidebarAttempts++;
+    var navUl = document.querySelector('.drawer-side nav ul');
+    if (!navUl) { var ds = document.querySelector('.drawer-side'); if (ds) navUl = ds.querySelector('nav ul'); }
+    if (!navUl) return false;
+    if (navUl.querySelector('[data-mihomo-link]')) { sidebarReady = true; return true; }
+
+    // 精确复制 metacubexd nav-link DOM 结构:
+    // <li class="nav-stagger"><a class="nav-link group relative flex w-full items-center gap-3 ...">
+    //   <span class="nav-link__icon">icon</span><span>text</span>
+    //   <span class="nav-link__glow" ...></span>
+    // </a></li>
+    var li = document.createElement('li');
+    li.setAttribute('data-mihomo-link', '1');
+    li.className = 'nav-stagger';
+    li.style.animationDelay = '350ms';
+
+    var a = document.createElement('a');
+    a.href = '#sub';  // 使用 hash 路由，不触发页面跳转
+    a.className = 'nav-link group relative flex w-full items-center gap-3 overflow-hidden rounded-lg px-3 py-2.5 text-sm font-medium no-underline';
+    a.style.cssText = 'color:color-mix(in oklch,var(--color-base-content),70%,transparent);cursor:pointer;';
+    a.setAttribute('title', '订阅管理');
+    a.onclick = function(e) { e.preventDefault(); e.stopPropagation(); showSubPage(); };
+
+    // Icon span (使用 SVG 图标，颜色继承 currentColor，与 Tabler icons 一致)
+    var iconSpan = document.createElement('span');
+    iconSpan.className = 'nav-link__icon shrink-0';
+    iconSpan.style.cssText = 'transition:transform var(--dur-base) var(--ease-spring);width:1.25rem;height:1.25rem;display:inline-flex;align-items:center;justify-content:center;';
+    // 简单的 RSS/订阅 SVG 图标 (与 Tabler IconRss 相似，24x24 viewBox)
+    iconSpan.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11a9 9 0 0 1 9 9"/><path d="M4 4a16 16 0 0 1 16 16"/><circle cx="5" cy="19" r="1"/></svg>';
+    a.appendChild(iconSpan);
+
+    // Text span
+    var textSpan = document.createElement('span');
+    textSpan.textContent = '订阅';
+    a.appendChild(textSpan);
+
+    // Glow overlay
+    var glow = document.createElement('span');
+    glow.className = 'nav-link__glow';
+    glow.style.cssText = 'position:absolute;inset:0;border-radius:0.5rem;pointer-events:none;';
+    a.appendChild(glow);
+
+    // indicator strip (matching nav-link__indicator)
+    var indicator = document.createElement('span');
+    indicator.className = 'nav-link__indicator';
+    indicator.style.cssText = 'display:none;position:absolute;left:0;top:20%;border-radius:0 3px 3px 0;background:var(--color-primary);';
+    a.appendChild(indicator);
+
+    li.appendChild(a);
+    navUl.appendChild(li);
+    sidebarReady = true;
+    console.log('[mihomo] sidebar injected');
+    return true;
+  }
+
+  // Watch for route changes to update active state & hide sub page
+  function updateSubActiveState() {
+    var subLink = document.querySelector('[data-mihomo-link] a');
+    var otherActive = document.querySelector('.drawer-side .nav-link.is-active:not([href="#sub"])');
+    if (subLink) {
+      if (otherActive) {
+        subLink.classList.remove('is-active');
+        hideSubPage();
+      }
+    }
+  }
+
+  function scheduleSidebar() {
+    if (injectSidebar()) { startObserving(); return; }
+    if (sidebarAttempts < 40) { setTimeout(scheduleSidebar, 400); return; }
+    // fallback FAB
+    if (!document.getElementById('mihomo-fab')) {
+      var fab = document.createElement('div'); fab.id = 'mihomo-fab';
+      fab.style.cssText = 'position:fixed;bottom:20px;right:20px;z-index:9999;';
+      fab.innerHTML = '<a href="./sub.html" style="background:var(--color-primary);color:var(--color-primary-content);padding:10px 16px;border-radius:0.75rem;text-decoration:none;font-size:14px;font-weight:600;box-shadow:0 4px 12px rgba(0,0,0,0.2)">📡 订阅</a>';
+      document.body.appendChild(fab);
+    }
+  }
+
+  // ====== 订阅内嵌页面（渲染在 drawer-content 内容区） ======
+  function buildSubContent() {
+    var div = document.getElementById('mihomo-sub-content');
+    if (div) return div;
+    div = document.createElement('div');
+    div.id = 'mihomo-sub-content';
+    div.style.cssText = 'display:none;flex:1;flex-direction:column;gap:12px;overflow-y:auto;padding:0;';
+    div.innerHTML =
+      '<div style="margin-bottom:8px;"><h2 style="font-size:1.25rem;font-weight:600;margin:0;">📡 订阅管理</h2></div>' +
+      '<div style="background:var(--color-base-200,oklch(0.18 0.005 285));border:1px solid color-mix(in oklch,var(--color-base-content,oklch(0.9 0 0)) 8%,transparent);border-radius:0.75rem;padding:20px;">' +
+        '<div style="font-size:0.85rem;opacity:0.6;text-transform:uppercase;letter-spacing:0.4px;font-weight:600;margin-bottom:14px;">🔗 订阅地址</div>' +
+        '<div style="display:flex;gap:8px;">' +
+          '<input type="url" id="mihomo-sub-url" placeholder="https://..." style="flex:1;padding:9px 14px;background:var(--color-base-100,oklch(0.15 0.005 285));border:1px solid color-mix(in oklch,var(--color-base-content) 10%,transparent);border-radius:0.5rem;color:var(--color-base-content);font-size:0.875rem;outline:none;">' +
+          '<button id="mihomo-sub-save" style="padding:9px 18px;background:var(--color-primary);color:var(--color-primary-content);border:none;border-radius:0.5rem;font-size:0.875rem;font-weight:600;cursor:pointer;white-space:nowrap;">保存</button>' +
+        '</div>' +
+      '</div>' +
+      '<div style="background:var(--color-base-200);border:1px solid color-mix(in oklch,var(--color-base-content) 8%,transparent);border-radius:0.75rem;padding:20px;">' +
+        '<div style="font-size:0.85rem;opacity:0.6;text-transform:uppercase;letter-spacing:0.4px;font-weight:600;margin-bottom:14px;">📊 状态</div>' +
+        '<div style="display:flex;justify-content:space-between;padding:8px 0;"><span style="opacity:0.6;font-size:0.85rem;">代理节点数</span><span id="mihomo-sub-nodes" style="font-weight:600;">--</span></div>' +
+        '<div style="display:flex;justify-content:space-between;padding:8px 0;"><span style="opacity:0.6;font-size:0.85rem;">最后更新</span><span id="mihomo-sub-time" style="font-weight:600;">--</span></div>' +
+      '</div>' +
+      '<div style="background:var(--color-base-200);border:1px solid color-mix(in oklch,var(--color-base-content) 8%,transparent);border-radius:0.75rem;padding:20px;">' +
+        '<button id="mihomo-sub-update" style="padding:9px 18px;background:var(--color-success,oklch(0.6 0.2 150));color:var(--color-success-content,white);border:none;border-radius:0.5rem;font-size:0.875rem;font-weight:600;cursor:pointer;">🔄 立即更新订阅</button>' +
+        '<span id="mihomo-sub-msg" style="margin-left:12px;font-size:0.85rem;"></span>' +
+      '</div>' +
+      '<div style="background:var(--color-base-200);border:1px solid color-mix(in oklch,var(--color-base-content) 8%,transparent);border-radius:0.75rem;padding:20px;">' +
+        '<div style="font-size:0.85rem;opacity:0.6;text-transform:uppercase;letter-spacing:0.4px;font-weight:600;margin-bottom:14px;">📋 日志</div>' +
+        '<pre id="mihomo-sub-log" style="background:var(--color-base-100);border:1px solid color-mix(in oklch,var(--color-base-content) 8%,transparent);border-radius:0.5rem;padding:12px;max-height:250px;overflow-y:auto;font-family:monospace;font-size:0.78rem;line-height:1.6;white-space:pre-wrap;word-break:break-all;opacity:0.85;margin:0;">加载中...</pre>' +
+      '</div>';
+    return div;
+  }
+
+  function showSubPage() {
+    // Hide Nuxt page content, show subscription content
+    var nuxtPage = document.querySelector('.drawer-content > div.flex.min-h-0.flex-1.flex-col');
+    if (!nuxtPage) return;
+
+    var subContent = buildSubContent();
+    var container = nuxtPage.parentElement;
+
+    // Insert sub content after nuxtPage container if not already there
+    if (!document.getElementById('mihomo-sub-content')) {
+      container.appendChild(subContent);
+    }
+
+    // Toggle visibility
+    nuxtPage.style.display = 'none';
+    subContent.style.display = 'flex';
+
+    // Set active state on sidebar link
+    var subLink = document.querySelector('[data-mihomo-link] a');
+    if (subLink) subLink.classList.add('is-active');
+    // Deactivate other nav links
+    document.querySelectorAll('.drawer-side .nav-link.is-active').forEach(function(el) {
+      if (el.getAttribute('href') !== '#sub') el.classList.remove('is-active');
+    });
+
+    loadSubData();
+  }
+
+  function hideSubPage() {
+    var nuxtPage = document.querySelector('.drawer-content > div.flex.min-h-0.flex-1.flex-col');
+    var subContent = document.getElementById('mihomo-sub-content');
+    if (nuxtPage) nuxtPage.style.display = '';
+    if (subContent) subContent.style.display = 'none';
+    var subLink = document.querySelector('[data-mihomo-link] a');
+    if (subLink) subLink.classList.remove('is-active');
+  }
+
+  async function loadSubData() {
+    try {
+      var r = await fetch(API + '/api/status');
+      var d = await r.json();
+      var urlEl = document.getElementById('mihomo-sub-url');
+      if (urlEl) urlEl.value = d.url || '';
+      var nodesEl = document.getElementById('mihomo-sub-nodes');
+      if (nodesEl) nodesEl.textContent = (d.node_count || 0) + ' 个';
+      var timeEl = document.getElementById('mihomo-sub-time');
+      if (timeEl) timeEl.textContent = d.last_update || '暂无';
+      var logEl = document.getElementById('mihomo-sub-log');
+      if (logEl) logEl.textContent = (d.log_entries && d.log_entries.length) ? d.log_entries.join('\n') : '暂无日志';
+    } catch(e) { console.log('sub data error:', e); }
+  }
+
+  // Attach sub page event handlers after DOM ready
+  function attachSubHandlers() {
+    var saveBtn = document.getElementById('mihomo-sub-save');
+    if (saveBtn && !saveBtn._bound) {
+      saveBtn._bound = true;
+      saveBtn.onclick = async function() {
+        var url = document.getElementById('mihomo-sub-url').value.trim();
+        if (!url) return;
+        await fetch(API + '/api/url', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url:url})});
+        loadSubData();
+      };
+    }
+    var updateBtn = document.getElementById('mihomo-sub-update');
+    if (updateBtn && !updateBtn._bound) {
+      updateBtn._bound = true;
+      updateBtn.onclick = async function() {
+        var btn = updateBtn, orig = btn.textContent;
+        btn.disabled = true; btn.innerHTML = '<span style="display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .8s linear infinite;vertical-align:middle;margin-right:6px;"></span> 更新中...';
+        try {
+          await fetch(API + '/api/update', {method:'POST'});
+          await loadSubData();
+          var msgEl = document.getElementById('mihomo-sub-msg');
+          if (msgEl) { msgEl.textContent = '✅ 更新完成'; msgEl.style.color = 'var(--color-success)'; }
+        } catch(e) {
+          var msgEl2 = document.getElementById('mihomo-sub-msg');
+          if (msgEl2) { msgEl2.textContent = '❌ 失败: '+e.message; msgEl2.style.color = 'var(--color-error)'; }
+        }
+        btn.disabled = false; btn.innerHTML = orig;
+      };
+    }
+  }
+
+  // ====== 规则页: 增/删/改按钮注入 ======
+  function injectRuleButtons() {
+    var rulesPage = document.querySelector('.rules-page');
+    if (!rulesPage) { addRuleInjected = false; return; }
+
+    // Add Rule 按钮 (在搜索栏旁边)
+    var searchBar = rulesPage.querySelector('.flex.flex-1.items-center.gap-2');
+    if (searchBar && !searchBar.querySelector('[data-mihomo-add-rule]')) {
+      var btn = document.createElement('button');
+      btn.setAttribute('data-mihomo-add-rule', '1');
+      btn.className = 'flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-all duration-200';
+      btn.style.cssText = 'background:var(--color-primary);color:var(--color-primary-content);border:none;cursor:pointer;white-space:nowrap;';
+      btn.textContent = '➕ Add Rule';
+      btn.onclick = function() { showRuleModal(null); };
+      searchBar.appendChild(btn);
+      addRuleInjected = true;
+    }
+
+    // 编辑 + 删除按钮 (每个卡片)
+    var cards = rulesPage.querySelectorAll('.animate-fade-slide-in.h-full.rounded-xl');
+    cards.forEach(function(card) {
+      if (card.querySelector('[data-mihomo-actions]')) return;
+      card.style.position = 'relative';
+
+      // 提取规则信息
+      var payloadEl = card.querySelector('.truncate.leading-\\[1\\.35\\].font-medium');
+      var typeEl = card.querySelector('.shrink-0.rounded-md.bg-primary\\/15');
+      var proxyEl = card.querySelector('.shrink-0.rounded-md.bg-secondary\\/15');
+      var payload = payloadEl ? payloadEl.textContent.trim() : '';
+      var type = typeEl ? typeEl.textContent.trim() : '';
+      var proxy = proxyEl ? proxyEl.textContent.trim() : '';
+
+      var actions = document.createElement('div');
+      actions.setAttribute('data-mihomo-actions', '1');
+      actions.style.cssText = 'position:absolute;top:6px;right:6px;display:flex;gap:4px;z-index:10;';
+
+      // Edit button
+      var editBtn = document.createElement('button');
+      editBtn.style.cssText = 'width:26px;height:26px;border:1px solid color-mix(in oklch,var(--color-base-content) 12%,transparent);background:transparent;color:color-mix(in oklch,var(--color-base-content) 50%,transparent);cursor:pointer;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:13px;';
+      editBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>';
+      editBtn.title = 'Edit rule';
+      editBtn.onclick = function(e) { e.stopPropagation(); e.preventDefault(); showRuleModal({type:type, payload:payload, proxy:proxy}); };
+
+      // Delete button
+      var delBtn = document.createElement('button');
+      delBtn.style.cssText = 'width:26px;height:26px;border:1px solid color-mix(in oklch,var(--color-base-content) 12%,transparent);background:transparent;color:color-mix(in oklch,var(--color-base-content) 50%,transparent);cursor:pointer;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:14px;';
+      delBtn.textContent = '✕';
+      delBtn.title = 'Delete rule';
+      delBtn.onclick = function(e) { e.stopPropagation(); e.preventDefault(); confirmDeleteRule(type, payload); };
+
+      actions.appendChild(editBtn);
+      actions.appendChild(delBtn);
+      card.appendChild(actions);
+    });
+  }
+
+  // ====== 规则 Modal (Add / Edit 共用) ======
+  function showRuleModal(existing) {
+    var isEdit = !!existing;
+    var old = document.getElementById('mihomo-rule-modal');
+    if (old) old.remove();
+
+    var overlay = document.createElement('div');
+    overlay.id = 'mihomo-rule-modal';
+    overlay.style.cssText = 'position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.5);backdrop-filter:blur(4px);';
+    overlay.onclick = function(e) { if (e.target === overlay) overlay.remove(); };
+
+    var title = isEdit ? '✏️ Edit Rule' : '➕ Add Rule';
+    var submitLabel = isEdit ? 'Update' : 'Add Rule';
+    var typeOpts = ['DOMAIN','DOMAIN-SUFFIX','DOMAIN-KEYWORD','IP-CIDR','IP-CIDR6','GEOIP','MATCH'];
+
+    overlay.innerHTML =
+      '<div style="background:var(--color-base-200);border:1px solid color-mix(in oklch,var(--color-base-content) 10%,transparent);border-radius:1rem;padding:24px;max-width:500px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.3);color:var(--color-base-content);">' +
+        '<h3 style="margin:0 0 16px;font-size:1.1rem;font-weight:600;">' + title + '</h3>' +
+        '<div style="display:flex;flex-direction:column;gap:12px;">' +
+          '<div><label style="display:block;font-size:0.8rem;opacity:0.6;margin-bottom:4px;">Type</label><select id="mihomo-rule-type" style="width:100%;padding:8px 12px;background:var(--color-base-100);border:1px solid color-mix(in oklch,var(--color-base-content) 15%,transparent);border-radius:0.5rem;color:inherit;font-size:0.9rem;">' +
+            typeOpts.map(function(t) { return '<option value="'+t+'"'+(existing&&existing.type===t?' selected':'')+'>'+t+'</option>'; }).join('') +
+          '</select></div>' +
+          '<div><label style="display:block;font-size:0.8rem;opacity:0.6;margin-bottom:4px;">Payload</label><input id="mihomo-rule-payload" placeholder="e.g. example.com or CN" value="'+(existing?escHtml(existing.payload):'')+'" style="width:100%;padding:8px 12px;background:var(--color-base-100);border:1px solid color-mix(in oklch,var(--color-base-content) 15%,transparent);border-radius:0.5rem;color:inherit;font-size:0.9rem;box-sizing:border-box;"></div>' +
+          '<div><label style="display:block;font-size:0.8rem;opacity:0.6;margin-bottom:4px;">Proxy/Policy</label><input id="mihomo-rule-proxy" placeholder="e.g. DIRECT or 代理组名" value="'+(existing?escHtml(existing.proxy):'')+'" style="width:100%;padding:8px 12px;background:var(--color-base-100);border:1px solid color-mix(in oklch,var(--color-base-content) 15%,transparent);border-radius:0.5rem;color:inherit;font-size:0.9rem;box-sizing:border-box;"></div>' +
+          '<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px;">' +
+            '<button id="mihomo-rule-cancel" style="padding:8px 16px;background:var(--color-base-300);color:var(--color-base-content);border:1px solid color-mix(in oklch,var(--color-base-content) 10%,transparent);border-radius:0.5rem;cursor:pointer;font-size:0.9rem;">Cancel</button>' +
+            '<button id="mihomo-rule-submit" style="padding:8px 16px;background:var(--color-primary);color:var(--color-primary-content);border:none;border-radius:0.5rem;cursor:pointer;font-size:0.9rem;font-weight:600;">'+submitLabel+'</button>' +
+          '</div>' +
+          '<div id="mihomo-rule-msg" style="font-size:0.8rem;min-height:1.2em;"></div>' +
+        '</div></div>';
+
+    document.body.appendChild(overlay);
+    document.getElementById('mihomo-rule-cancel').onclick = function() { overlay.remove(); };
+
+    document.getElementById('mihomo-rule-submit').onclick = async function() {
+      var type = document.getElementById('mihomo-rule-type').value;
+      var payload = document.getElementById('mihomo-rule-payload').value.trim();
+      var proxy = document.getElementById('mihomo-rule-proxy').value.trim();
+      var msgEl = document.getElementById('mihomo-rule-msg');
+      if (!proxy) { msgEl.textContent = 'Proxy is required'; msgEl.style.color = 'var(--color-error)'; return; }
+      if (type === 'MATCH' && !payload) payload = '';
+
+      try {
+        var url = API + '/api/rules';
+        var method = 'POST';
+        var body = {type:type, payload:payload, proxy:proxy};
+        if (isEdit) {
+          // 查找规则索引
+          var rr = await fetch(API + '/api/rules');
+          var dd = await rr.json();
+          var rules = dd.rules || [];
+          for (var i = 0; i < rules.length; i++) {
+            if (rules[i].raw.indexOf(existing.type + ',' + existing.payload) === 0) {
+              url = API + '/api/rules/' + rules[i].index;
+              method = 'PUT';
+              break;
+            }
+          }
+        }
+        var r = await fetch(url, {method:method, headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
+        var data = await r.json();
+        if (data.success) {
+          msgEl.textContent = '✅ ' + data.message;
+          msgEl.style.color = 'var(--color-success)';
+          setTimeout(function() { overlay.remove(); location.reload(); }, 800);
+        } else {
+          msgEl.textContent = '❌ ' + data.message;
+          msgEl.style.color = 'var(--color-error)';
+        }
+      } catch(e) {
+        msgEl.textContent = '❌ Error: ' + e.message;
+        msgEl.style.color = 'var(--color-error)';
+      }
+    };
+  }
+
+  function confirmDeleteRule(type, payload) {
+    var overlay = document.createElement('div');
+    overlay.style.cssText = 'position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.5);backdrop-filter:blur(4px);';
+    overlay.onclick = function(e) { if (e.target === overlay) overlay.remove(); };
+    overlay.innerHTML =
+      '<div style="background:var(--color-base-200);border:1px solid color-mix(in oklch,var(--color-base-content) 10%,transparent);border-radius:1rem;padding:24px;max-width:400px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.3);color:var(--color-base-content);text-align:center;">' +
+        '<p style="margin:0 0 8px;font-weight:600;">Delete this rule?</p>' +
+        '<p style="margin:0 0 20px;font-family:monospace;font-size:0.85rem;opacity:0.6;word-break:break-all;">' + escHtml(type) + (payload ? ',' + escHtml(payload) : '') + '</p>' +
+        '<button id="mihomo-del-confirm" style="padding:8px 20px;background:var(--color-error);color:white;border:none;border-radius:0.5rem;cursor:pointer;font-weight:600;margin:0 6px;">Delete</button>' +
+        '<button id="mihomo-del-cancel" style="padding:8px 20px;background:var(--color-base-300);color:var(--color-base-content);border:1px solid color-mix(in oklch,var(--color-base-content) 10%,transparent);border-radius:0.5rem;cursor:pointer;">Cancel</button>' +
+      '</div>';
+    document.body.appendChild(overlay);
+    document.getElementById('mihomo-del-cancel').onclick = function() { overlay.remove(); };
+    document.getElementById('mihomo-del-confirm').onclick = async function() {
+      try {
+        var r = await fetch(API + '/api/rules');
+        var data = await r.json();
+        var rules = data.rules || [], found = null;
+        for (var i = 0; i < rules.length; i++) {
+          if (rules[i].raw.indexOf(type + ',' + payload) === 0) { found = rules[i]; break; }
+        }
+        if (!found) {
+          for (var j = 0; j < rules.length; j++) {
+            if (rules[j].raw.indexOf(type + ',') === 0) { found = rules[j]; break; }
+          }
+        }
+        if (found) {
+          var dr = await fetch(API + '/api/rules/' + found.index, {method:'DELETE'});
+          var dd = await dr.json();
+          if (dd.success) { overlay.remove(); location.reload(); }
+          else alert('Failed: ' + dd.message);
+        } else alert('Rule not found');
+      } catch(e) { alert('Error: ' + e.message); }
+    };
+  }
+
+  function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+  // ====== Observers ======
+  function startObserving() {
+    var bodyObs = new MutationObserver(function() {
+      updateSubActiveState();
+      injectRuleButtons();
+      attachSubHandlers();
+    });
+    bodyObs.observe(document.body, { childList: true, subtree: true });
+
+    // 定期重新注入 (虚拟滚动)
+    setInterval(function() {
+      injectRuleButtons();
+      attachSubHandlers();
+      updateSubActiveState();
+    }, 2000);
+
+    // 初始: 检测当前路由，更新active状态
+    updateSubActiveState();
+  }
+
+  // ====== Init ======
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function() { setTimeout(scheduleSidebar, 600); });
+  } else {
+    setTimeout(scheduleSidebar, 600);
+  }
+})();
+</script>
+</body></html>

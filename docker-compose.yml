@@ -1,0 +1,18 @@
+version: "3.8"
+
+services:
+  mihomo:
+    image: ghcr.io/lingting0/mihomo-ui:latest
+    container_name: mihomo
+    restart: unless-stopped
+    network_mode: host
+    environment:
+      - SUB_URL=${SUB_URL}          # 可选：首次启动时自动写入订阅地址
+      - UPDATE_HOUR=4               # 可选：自动更新时间（0-23），默认凌晨4点
+      - TZ=Asia/Shanghai
+    volumes:
+      - ./config/config.yaml:/etc/mihomo/config.yaml   # 挂载配置文件
+      - ./config/mihomo-sub.log:/etc/mihomo/mihomo-sub.log  # 日志
+    # ports:                       # 使用 host 网络模式则不需要端口映射
+    #   - "7890:7890"
+    #   - "9090:9090"

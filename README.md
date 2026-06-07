@@ -53,12 +53,31 @@ sudo bash /etc/mihomo/update-sub.sh
 - 🔗 查看活跃连接
 - ⚙️ 修改配置（规则/策略组）
 
+## Docker 部署（群晖 / 极空间 / 其他 NAS）
+
+```bash
+# 1. 克隆仓库
+git clone https://github.com/lingting0/mihomo-ui-ubuntu-amd64-v0.1.git
+cd mihomo-ui-ubuntu-amd64-v0.1
+
+# 2. 创建配置目录
+mkdir -p config
+
+# 3. 复制并编辑配置模板
+cp config.example.yaml config/config.yaml
+# 编辑 config.yaml，修改 proxies: 下的节点，或写入订阅地址到 sub_url.txt
+
+# 4. 启动
+SUB_URL="你的订阅地址" docker compose up -d
+```
+
+面板地址：`http://NAS_IP:9090/ui/`
+
 ## 系统要求
 
-- Ubuntu / Debian amd64
-- systemd
+- Ubuntu / Debian amd64（裸机部署）
+- Docker / Docker Compose（NAS 部署，支持 ARM64/AMD64）
 - Python 3.6+
-- Docker（可选，仅旧版订阅转换需要）
 
 ## 协议支持
 

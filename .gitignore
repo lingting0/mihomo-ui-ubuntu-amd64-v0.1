@@ -1,0 +1,12 @@
+# 敏感文件
+sub_url.txt
+config.yaml.bak*
+
+# mihomo 运行时
+cache.db
+geoip.metadb
+*.log
+
+# 系统文件
+CLAUDE.md
+.DS_Store

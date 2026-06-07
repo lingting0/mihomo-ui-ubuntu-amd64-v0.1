@@ -53,25 +53,58 @@ sudo bash /etc/mihomo/update-sub.sh
 - 🔗 查看活跃连接
 - ⚙️ 修改配置（规则/策略组）
 
-## Docker 部署（群晖 / 极空间 / 其他 NAS）
+## Docker 部署
+
+### 群晖 DS218+（DSM 7.x）
+
+1. 打开 **Container Manager**（或旧版 Docker）
+2. **注册表** → 搜索 `ghcr.io/lingting0/mihomo-ui` → 下载 `latest`
+3. 在 File Station 的 `docker/mihomo/` 下创建两个文件：
+   - `config.yaml`（从 `config.example.yaml` 复制，填好订阅地址）
+   - `sub_url.txt`（写入订阅 URL）
+4. **容器** → 新增 → 选择刚下载的镜像
+   - 网络：勾选 **使用与 Docker Host 相同的网络**
+   - 卷：`docker/mihomo` → 挂载到 `/etc/mihomo`
+   - 环境变量：`TZ` = `Asia/Shanghai`
+5. 启动容器 → 浏览器打开 `http://NAS_IP:9090/ui/`
+
+### 极空间 Z2PRO
+
+SSH 登录后：
 
 ```bash
-# 1. 克隆仓库
-git clone https://github.com/lingting0/mihomo-ui-ubuntu-amd64-v0.1.git
-cd mihomo-ui-ubuntu-amd64-v0.1
+# 下载镜像
+docker pull ghcr.io/lingting0/mihomo-ui:latest
 
-# 2. 创建配置目录
-mkdir -p config
+# 创建配置目录
+mkdir -p /mnt/docker/mihomo
 
-# 3. 复制并编辑配置模板
-cp config.example.yaml config/config.yaml
-# 编辑 config.yaml，修改 proxies: 下的节点，或写入订阅地址到 sub_url.txt
+# 下载配置模板并编辑
+wget -O /mnt/docker/mihomo/config.yaml https://raw.githubusercontent.com/lingting0/mihomo-ui-ubuntu-amd64-v0.1/main/config.example.yaml
+nano /mnt/docker/mihomo/config.yaml
 
-# 4. 启动
-SUB_URL="你的订阅地址" docker compose up -d
+# 启动
+docker run -d \
+  --name mihomo \
+  --restart unless-stopped \
+  --network host \
+  -e TZ=Asia/Shanghai \
+  -v /mnt/docker/mihomo:/etc/mihomo \
+  ghcr.io/lingting0/mihomo-ui:latest
 ```
 
-面板地址：`http://NAS_IP:9090/ui/`
+面板：`http://极空间IP:9090/ui/`
+
+### Docker Compose（通用）
+
+```bash
+git clone https://github.com/lingting0/mihomo-ui-ubuntu-amd64-v0.1.git
+cd mihomo-ui-ubuntu-amd64-v0.1
+mkdir -p config
+cp config.example.yaml config/config.yaml
+# 编辑 config/config.yaml 填入你的配置
+SUB_URL="你的订阅地址" docker compose up -d
+```
 
 ## 系统要求
 

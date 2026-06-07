@@ -16,7 +16,7 @@
 
 ```bash
 # 1. 克隆仓库
-git clone https://github.com/zyyd11/mihomo-ui-ubuntu-amd64-v0.1.git
+git clone https://github.com/lingting0/mihomo-ui-ubuntu-amd64-v0.1.git
 cd mihomo-ui-ubuntu-amd64-v0.1
 
 # 2. 编辑配置，填入你的订阅地址

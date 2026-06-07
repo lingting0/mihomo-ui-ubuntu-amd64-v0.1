@@ -18,8 +18,18 @@ SUB_URL=$(tr -d '\n\r' < "$URL_FILE")
 
 echo "[$(ts)] fetching subscription..." | tee -a "$LOG"
 
-# 下载并解码 base64，解析为代理节点列表
-curl -sL --max-time 40 "$SUB_URL" | base64 -d > "$TMP_NODES" 2>/dev/null
+# 下载订阅，自动检测是否为 base64 格式
+RAW=$(curl -sL --max-time 40 "$SUB_URL")
+
+if echo "$RAW" | base64 -d > "$TMP_NODES" 2>/dev/null && grep -qE '^(trojan|vless|ss|vmess)://' "$TMP_NODES"; then
+  echo "[$(ts)] detected base64, decoded" | tee -a "$LOG"
+elif echo "$RAW" | grep -qE '^(trojan|vless|ss|vmess)://'; then
+  echo "$RAW" > "$TMP_NODES"
+  echo "[$(ts)] plain text subscription" | tee -a "$LOG"
+else
+  echo "[$(ts)] ERROR: unrecognized subscription format" | tee -a "$LOG"
+  exit 1
+fi
 
 if [[ ! -s "$TMP_NODES" ]]; then
   echo "[$(ts)] ERROR: empty or invalid subscription" | tee -a "$LOG"
